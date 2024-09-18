@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>太阳系</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: auto;
+    }
+  </style>
+ <!--引入three.js三维引擎-->
+ <script src="http://yg-cup.test.upcdn.net/three.js-R125/build/three.js"></script>
+ <!-- <script src="..\OrbitControls.js"></script> -->
+ <script src="http://yg-cup.test.upcdn.net/three.js-R125/examples/js/controls/OrbitControls.js"></script>
+ 
+ 
+</head>
+
+<body>
+  <script type="text/javascript">
+    
+    //全局变量，g表示global 在这里设置了全局变量之后就不要再定义了！！
+    let g_scene, g_camera, g_renderer, g_controls;
+    let mesh_sun, mesh_earth,mesh_moon,mesh_mercury,mesh_venus,mesh_mars,mesh_jupiter,mesh_saturn,mesh_saturn_track,mesh_neptune,mesh_universe,mesh_star;
+    let sunGroup, earthGroup, moonGroup,MercuryGroup,VenusGroup,MarsGroup,JupiterGroup,SaturnGroup,UranusGroup,NeptuneGroup;
+    let material_star
+    let rad=[140,60,90,190,250,295,335,375];
+    //***************程序主逻辑********************
+    init();//初始化
+    loop();//循环开始
+
+
+    //循环运行update，render
+    function loop() {
+      requestAnimationFrame(loop);
+      update();
+      render();
+    }
+    
+    function update() {       //局部坐标系
+     
+      revolution();
+      selfRotation();
+      
+   }
+    function revolution(){
+        SetRevolution(earthGroup,140,1);
+        SetRevolution(moonGroup,30,1);
+        SetRevolution(MercuryGroup,60,4);
+        SetRevolution(VenusGroup,90,1.6);
+        SetRevolution(MarsGroup,190,0.5);
+        SetRevolution(JupiterGroup,250,0.09);
+        SetRevolution(SaturnGroup,295,0.04);
+        SetRevolution(UranusGroup,335,0.01);
+        SetRevolution(NeptuneGroup,375,0.006)
+        
+    }
+    function SetRevolution(Group,x,a){
+        Group.position.set(0, 0, 0); 
+        Group.rotateY(0.008*a);
+        Group.translateX(x);
+    }
+    function selfRotation(){
+      mesh_sun.rotation.y += 0.01;
+      mesh_earth.rotation.y += 0.005;
+      mesh_moon.rotation.y += 0.008;
+      mesh_jupiter.rotation.y+=0.01;
+      mesh_mercury.rotation.y+=0.004;
+      mesh_venus.rotation.y+=0.004;
+      mesh_mars.rotation.y+=0.005;
+      mesh_neptune.rotation.y+=0.004;
+      mesh_saturn.rotation.y+=0.01;
+      mesh_saturn_track.rotation.y +=0.004;
+
+    }
+
+    //渲染
+    function render() {
+      g_renderer.render(g_scene, g_camera);
+    }
+    
+    //将需要初始化的放在该方法中统一初始化
+    function init() {
+      initScene();//初始化场景   
+      initCamera();//初始化相机
+      initRenender();//初始化渲染器
+      initLight();//初始化光线
+
+      setWindown();//窗体的设置
+      setEventsMouse();//定义鼠标事件
+      setKeyEvents();//定义键盘按键事件       
+      setOrbitControl();//设置Orbit控制    
+      setMesh();//定义场景中的物体
+      creatStar();
+      creatTrack();
+    }
+
+    //*************************************************
+    //初始化场景
+    function initScene() {
+      g_scene = new THREE.Scene();//创建场景
+
+      let axisHelper = new THREE.AxesHelper(250);
+      g_scene.add(axisHelper);
+    }
+
+    //初始化相机
+    function initCamera() {
+      let k = window.innerWidth / window.innerHeight; //窗口宽高比
+      let s = 150; 
+      
+      // g_camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+      g_camera = new THREE.PerspectiveCamera(60, k, 1, 10000);
+      g_camera.position.set(200, 300, 200); //设置相机位置
+      g_camera.lookAt(g_scene.position); //设置相机方向(指向的场景对象)
+    }
+    
+
+    //初始化渲染器
+    function initRenender() {
+      //创建渲染器
+      g_renderer = new THREE.WebGLRenderer();
+      g_renderer.setSize(window.innerWidth, window.innerHeight);
+      g_renderer.setClearColor(0x000000, 1); //设置背景颜色
+      document.body.appendChild(g_renderer.domElement); //body元素中插入canvas对象, 渲染到浏览器
+
+    }
+
+    //初始化光源
+    function initLight() {
+      //点光源
+      let light_point = new THREE.PointLight(0xf59d29);
+      light_point.position.set(0,0,0); //点光源位置
+      g_scene.add(light_point); //点光源添加到场景中
+      //环境光
+      let ambient = new THREE.AmbientLight(0xeeeeee);
+      g_scene.add(ambient);
+      //聚光灯
+      // let light_spot = new THREE.SpotLight(0x00ffff);
+      // light_spot.position.set(-20, 80, -100); //点光源位置
+      // light_spot.angle = 0.5;
+      // g_scene.add(light_spot); //点光源添加到场景中
+
+      // let spotLightHelper = new THREE.SpotLightHelper( light_spot );
+      // g_scene.add( spotLightHelper );
+    }
+
+    //*************************************************
+    //响应resize消息，设置窗口尺寸并重设相机投影参数
+    function setWindown() {
+      //加入事件监听器,窗口自适应
+      window.addEventListener('resize', function () {
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        g_renderer.setSize(width, height);
+        g_camera.aspect = width / height;
+        g_camera.updateProjectionMatrix();
+      });
+    }
+
+    //定义鼠标事件
+    function setEventsMouse() {
+     
+
+    }
+
+    //定义键盘按键事件
+    function setKeyEvents() {
+      
+    }
+
+    //定义控制
+    function setOrbitControl() {
+      //轨道控制 镜头的移动
+      g_controls = new THREE.OrbitControls(g_camera, g_renderer.domElement);
+    }
+
+    
+
+    //定义场景中的网格物体
+    function setMesh() {
+        sunGroup = new THREE.Group();
+        sunGroup.name = "sun";
+        earthGroup = new THREE.Group();
+        earthGroup.name = "earth";
+        moonGroup = new THREE.Group();
+        moonGroup.name = "moon";
+        MercuryGroup=new THREE.Group();
+        
+        VenusGroup=new THREE.Group();
+        MarsGroup=new THREE.Group();
+        JupiterGroup=new THREE.Group();
+        SaturnGroup=new THREE.Group();
+        UranusGroup=new THREE.Group();
+        NeptuneGroup=new THREE.Group();
+        trackGroup=new THREE.Group();
+
+
+        g_scene.add(sunGroup,trackGroup,mesh_universe);
+        sunGroup.add(earthGroup,MercuryGroup,VenusGroup,MarsGroup,JupiterGroup,SaturnGroup,UranusGroup,NeptuneGroup);
+        earthGroup.add(moonGroup);
+
+
+      
+    var geometry_sun = new THREE.SphereBufferGeometry(40, 15, 20); 
+    var material_sun = new THREE.MeshPhongMaterial({
+        color: 0xf66523,
+        specular:0x444444,
+        shininess:30,
+        emissive:0xdd0000,
+        //wireframe:true
+      });
+      mesh_sun = new THREE.Mesh(geometry_sun, material_sun); 
+      sunGroup.add(mesh_sun);
+      //-------
+
+    var geometry_earth = new THREE.SphereBufferGeometry(15, 10, 10); 
+    var material_earth = new THREE.MeshPhongMaterial({
+        color: 0x0000ff,
+        specular:0x444444,
+        shininess:30,
+        //wireframe:true
+      });
+      mesh_earth = new THREE.Mesh(geometry_earth, material_earth);       
+      earthGroup.add(mesh_earth);
+      //-------
+      var geometry_moon = new THREE.SphereBufferGeometry(8, 8, 5); 
+      var material_moon = new THREE.MeshPhongMaterial({
+        color: 0xded48c,
+        specular:0x444444,
+        shininess:5,
+        //wireframe:true
+      });
+      mesh_moon=new THREE.Mesh(geometry_moon,material_moon);
+      moonGroup.add(mesh_moon);
+    //-------
+    let geometry_mercury=new THREE.SphereBufferGeometry(11,10,6);
+    let material_mercury=new THREE.MeshPhongMaterial({
+        color:0xd8cf6f,
+        specular:0x444444,
+        shininess:10
+    })
+    
+    mesh_mercury=new THREE.Mesh(geometry_mercury,material_mercury);
+    MercuryGroup.add(mesh_mercury);
+    //-------
+    let geometry_venus=new THREE.SphereBufferGeometry(15,10,10);
+    let material_venus=new THREE.MeshPhongMaterial({
+      color:0xaa6d0e,
+      specular: 0x444444,
+      shininess:10
+    })
+    mesh_venus=new THREE.Mesh(geometry_venus,material_venus);
+    VenusGroup.add(mesh_venus); 
+    //-------
+    let geometry_mars=new THREE.SphereBufferGeometry(13,10,10);
+    let material_mars=new THREE.MeshPhongMaterial({
+      color:0xc1ae90,
+      specular: 0x444444,
+      shininess:10
+    })
+    mesh_mars=new THREE.Mesh(geometry_mars,material_mars);
+    MarsGroup.add(mesh_mars); 
+    
+    //-------
+    let geometry_jupiter=new THREE.SphereBufferGeometry(22,15,10);
+    let material_jupiter=new THREE.MeshPhongMaterial({
+      color:0x905b14,
+      specular: 0x444444,
+      shininess:10
+    })
+    mesh_jupiter=new THREE.Mesh(geometry_jupiter,material_jupiter);
+    JupiterGroup.add(mesh_jupiter); 
+    
+    //-------
+    let geometry_saturn=new THREE.SphereBufferGeometry(20,15,10);
+    let material_saturn=new THREE.MeshPhongMaterial({
+      color:0xd8d297,
+      specular: 0x444444,
+      shininess:10
+    })
+    mesh_saturn=new THREE.Mesh(geometry_saturn,material_saturn);
+    SaturnGroup.add(mesh_saturn); 
+    let geometry_saturn_track=new THREE.RingBufferGeometry(20+6,20+10,100);
+    let material_saturn_track=new THREE.MeshLambertMaterial({
+      transparent:true,
+      opacity:0.8,
+      color:0x905b14,
+      side:THREE.DoubleSide,
+    })
+    mesh_saturn_track=new THREE.Mesh(geometry_saturn_track,material_saturn_track);
+    SaturnGroup.add(mesh_saturn_track);
+    r=new THREE.Euler(-0.2*Math.PI,0.3*Math.PI,0,"XYZ");
+    mesh_saturn_track.rotation.copy(r);
+    //
+     let geometry_uranus=new THREE.SphereBufferGeometry(20,15,10);
+     let material_uranus=new THREE.MeshPhongMaterial({
+       color:0xa2c7eb,
+       specular: 0x444444,
+       shininess:10
+     })
+    mesh_uranus=new THREE.Mesh(geometry_uranus,material_uranus);
+    UranusGroup.add(mesh_uranus); 
+   //
+     let geometry_neptune=new THREE.SphereBufferGeometry(19,15,10);
+     let material_neptune=new THREE.MeshPhongMaterial({
+       color:0x76b2ef,
+       specular: 0x444444,
+       shininess:10
+     })
+    mesh_neptune=new THREE.Mesh(geometry_neptune,material_neptune);
+    NeptuneGroup.add(mesh_neptune); 
+
+  }
+
+
+  function creatStar(){
+    let geometry_star=new THREE.BufferGeometry();
+    const position=[];
+    const color=[];
+    for (let i = 0; i < 3000; i++) {
+        let vertex=new THREE.Vector3();
+        vertex.x=Math.random()*-800+400;
+        vertex.y=Math.random()*-800+400;
+        vertex.z=Math.random()*-800+400;
+        position.push(vertex.x);
+        position.push(vertex.y);
+        position.push(vertex.z);
+        //console.log(vertex);
+    }
+    for (let i = 0; i < 3000; i++) {
+        let vertex=new THREE.Vector3();
+        vertex.x=Math.random()*2-1;
+        vertex.y=Math.random()*10;
+        vertex.z=Math.random()*21;
+        color.push(vertex.x);
+        color.push(vertex.y);
+        color.push(vertex.z);
+        //console.log(vertex.x,vertex.y,vertex.z);
+    }
+    //console.log(new Float32Array(position))
+    geometry_star.attributes.position=new THREE.BufferAttribute(new Float32Array(position), 3); 
+    geometry_star.setAttribute('color',new THREE.BufferAttribute(new Float32Array(color), 3));
+    //console.log(geometry_star.attributes.position)
+
+    material_star=new THREE.PointsMaterial({
+      //color: 0xcccfff,
+      vertexColors:THREE.VertexColors,
+      size:1.2,
+    })
+    mesh_star=new THREE.Points(geometry_star,material_star);
+    
+    g_scene.add(mesh_star);
+
+    flickerAmount=0.5;
+    setInterval(function() {
+      let i=1;
+      if(i=1){
+        material_star.opacity = flickerAmount;
+        material_star.needsUpdate = true; // 更新材质
+        i=0;
+      } 
+      else {
+        i=1;
+      }
+    }, 500);
+
+  }
+  function creatTrack(){
+    let i=0;
+    sunGroup.children.forEach(function(child){
+      //console.log(child);
+      let geometry_track=new THREE.RingBufferGeometry(
+        rad[i],
+        rad[i]+1,
+        1000
+      );
+      let material_track=new THREE.LineBasicMaterial({
+        color:0xffffff,
+        side:THREE.DoubleSide,
+      })
+      let mesh_track=new THREE.Mesh(geometry_track,material_track);
+      mesh_track.position.set(0,0,0);
+      mesh_track.rotation.set(0.5*Math.PI,0,0);
+      trackGroup.add(mesh_track);
+      i++;
+    });
+    let geometry_track_moon=new THREE.RingBufferGeometry(
+        30,
+        30+1,
+        1000
+      );
+      let material_track_moon=new THREE.LineBasicMaterial({
+        color:0xffffff,
+        side:THREE.DoubleSide,
+      })
+      let mesh_track_moon=new THREE.Mesh(geometry_track_moon,material_track_moon);
+      mesh_track_moon.position.set(0,0,0);
+      mesh_track_moon.rotation.set(0.5*Math.PI,0,0);
+      earthGroup.add(mesh_track_moon);
+
+  }
+
+  
+
+  </script>
+</body>
+
+</html>

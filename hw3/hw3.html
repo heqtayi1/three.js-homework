@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  
+
+<head>
+  <meta charset="UTF-8">
+  <title>水波模拟</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: auto;
+    }
+  </style>
+ <!--引入three.js三维引擎-->
+ <script src="http://yg-cup.test.upcdn.net/three.js-R125/build/three.js"></script>
+ <!-- 引入threejs扩展控件OrbitControls.js -->
+ <!-- <script src="..\OrbitControls.js"></script> -->
+ <script src="http://yg-cup.test.upcdn.net/three.js-R125/examples/js/controls/OrbitControls.js"></script>
+</head>
+
+<body>
+  <script type="text/javascript">
+    //全局变量，g表示global
+    let g_scene, g_camera, g_renderer, g_controls;
+    let g_geometry, g_material;
+    let float_mesh,float_geometry,water_shader;
+
+    var toRad = Math.PI / 180;
+    var row=8, col=8;
+
+    var amplitude = 20.0;
+    var frequency = 3.0;
+    var phase = 1.0;
+    var time = 0;
+    var dir = new THREE.Vector2(1, 1);
+
+    //***************程序主逻辑********************
+    init();//初始化
+    loop();//循环开始
+
+
+    //循环运行update，render
+    function loop() {
+      requestAnimationFrame(loop);
+      update();
+      render();
+    }
+
+    function update() {
+        setFloat();
+        water_shader.uniforms.time.value+=0.01;//shader
+        time += 0.01;//float
+    }
+
+    //渲染
+    function render() {
+      g_renderer.render(g_scene, g_camera);
+    }
+    
+    //将需要初始化的放在该方法中统一初始化
+    function init() {
+      initScene();//初始化场景   
+      initCamera();//初始化相机
+      initRenender();//初始化渲染器
+      initLight();//初始化光线
+
+      setWindown();//窗体的设置
+      setEventsMouse();//定义鼠标事件
+      setKeyEvents();//定义键盘按键事件       
+      setOrbitControl();//设置Orbit控制    
+      setMesh();//定义场景中的物体
+    }
+
+    //*************************************************
+    //初始化场景
+    function initScene() {
+      g_scene = new THREE.Scene();//创建场景
+
+      let axisHelper = new THREE.AxesHelper(250);
+      g_scene.add(axisHelper);
+    }
+
+    //初始化相机
+    function initCamera() {
+      let k = window.innerWidth / window.innerHeight; //窗口宽高比
+      let s = 150; 
+      
+      g_camera = new THREE.PerspectiveCamera(60, k, 1, 10000);
+      g_camera.position.set(200, 300, 200); //设置相机位置
+      g_camera.lookAt(g_scene.position); //设置相机方向(指向的场景对象)
+    }
+
+    //初始化渲染器
+    function initRenender() {
+      //创建渲染器
+      g_renderer = new THREE.WebGLRenderer();
+      g_renderer.setSize(window.innerWidth, window.innerHeight);
+      g_renderer.setClearColor(0xb9d3ff, 1); //设置背景颜色
+      document.body.appendChild(g_renderer.domElement); //body元素中插入canvas对象, 渲染到浏览器
+    }
+
+    //初始化光源
+    function initLight() {
+      //点光源
+      let light_point = new THREE.PointLight(0xffffff);
+      light_point.position.set(400, 200, 300); //点光源位置
+      g_scene.add(light_point); //点光源添加到场景中
+      //环境光
+      let ambient = new THREE.AmbientLight(0x444444);
+      g_scene.add(ambient);
+      //聚光灯
+      // let light_spot = new THREE.SpotLight(0x97dbda);
+      // light_spot.position.set(-20, 80, -200); //点光源位置
+      // light_spot.angle = 0.1;
+      // g_scene.add(light_spot); //点光源添加到场景中
+
+      // let spotLightHelper = new THREE.SpotLightHelper( light_spot );
+      // g_scene.add( spotLightHelper );
+    }
+
+    //*************************************************
+    //响应resize消息，设置窗口尺寸并重设相机投影参数
+    function setWindown() {
+      //加入事件监听器,窗口自适应
+      window.addEventListener('resize', function () {
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        g_renderer.setSize(width, height);
+        g_camera.aspect = width / height;
+        g_camera.updateProjectionMatrix();
+      });
+    }
+
+    //定义鼠标事件
+    function setEventsMouse() {
+      //点击了鼠标左键
+      window.addEventListener('click', function (e) {
+        if (e.button === 0) {
+          console.log("点击了鼠标左键");
+        }
+      });
+
+      //点击了鼠标右键
+      window.addEventListener('contextmenu', function (e) {
+        if (e.button === 2) {
+          console.log("点击了鼠标右键");
+        }
+      });
+
+      //鼠标移动坐标2D坐标
+      window.addEventListener('mousemove', function (e) {
+        // console.log('x:' + e.x);
+        // console.log('y:' + e.y);
+      });
+
+    }
+
+    //定义键盘按键事件
+    function setKeyEvents() {
+      window.addEventListener('keydown', function (e) {
+        console.log(e);
+      });
+    }
+
+    //定义控制
+    function setOrbitControl() {
+      //轨道控制 镜头的移动
+      g_controls = new THREE.OrbitControls(g_camera, g_renderer.domElement);
+    }
+
+    //定义场景中的网格物体
+    function setMesh() {
+     //水面几何
+      g_geometry = new THREE.PlaneGeometry(300, 300, row, col);
+      g_geometry.rotateX(-90 * toRad);
+      //水面shader
+      water_shader=new THREE.RawShaderMaterial({
+        uniforms:{
+          amplitude:{value:23.0},
+          frequency:{value:new THREE.Vector2(3.0,0.5)},
+          time:{value:0.0},
+          depthColor:{value:new THREE.Color(0x00aaff)},
+          surfaceColor:{value:new THREE.Color(0xcceeff)},
+          spcularColor:{value:new THREE.Color(0xffffff)},
+          shiness:{value:0.6},
+        },
+        
+        vertexShader:`
+        uniform mat4 projectionMatrix;
+        uniform mat4 viewMatrix;
+        uniform mat4 modelMatrix;
+        uniform float amplitude;
+        uniform vec2 frequency;
+        uniform float time;
+        
+        varying float vex_elevation;
+        attribute vec2 uv;
+        varying vec2 vex_uv;
+        attribute vec3 position;
+        ///////noise
+        vec4 permute(vec4 x)
+        {
+            return mod(((x*34.0)+1.0)*x, 289.0);
+        }
+        vec4 taylorInvSqrt(vec4 r)
+        {
+            return 1.79284291400159 - 0.85373472095314 * r;
+        }
+        vec3 fade(vec3 t)
+        {
+            return t*t*t*(t*(t*6.0-15.0)+10.0);
+        }
+
+        float cnoise(vec3 P)
+        {
+            vec3 Pi0 = floor(P); // Integer part for indexing
+            vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+            Pi0 = mod(Pi0, 289.0);
+            Pi1 = mod(Pi1, 289.0);
+            vec3 Pf0 = fract(P); // Fractional part for interpolation
+            vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+            vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+            vec4 iy = vec4(Pi0.yy, Pi1.yy);
+            vec4 iz0 = Pi0.zzzz;
+            vec4 iz1 = Pi1.zzzz;
+
+            vec4 ixy = permute(permute(ix) + iy);
+            vec4 ixy0 = permute(ixy + iz0);
+            vec4 ixy1 = permute(ixy + iz1);
+
+            vec4 gx0 = ixy0 / 7.0;
+            vec4 gy0 = fract(floor(gx0) / 7.0) - 0.5;
+            gx0 = fract(gx0);
+            vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+            vec4 sz0 = step(gz0, vec4(0.0));
+            gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+            gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+            vec4 gx1 = ixy1 / 7.0;
+            vec4 gy1 = fract(floor(gx1) / 7.0) - 0.5;
+            gx1 = fract(gx1);
+            vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+            vec4 sz1 = step(gz1, vec4(0.0));
+            gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+            gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+            vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+            vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+            vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+            vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+            vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+            vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+            vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+            vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+            vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+            g000 *= norm0.x;
+            g010 *= norm0.y;
+            g100 *= norm0.z;
+            g110 *= norm0.w;
+            vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+            g001 *= norm1.x;
+            g011 *= norm1.y;
+            g101 *= norm1.z;
+            g111 *= norm1.w;
+
+            float n000 = dot(g000, Pf0);
+            float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+            float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+            float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+            float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+            float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+            float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+            float n111 = dot(g111, Pf1);
+
+            vec3 fade_xyz = fade(Pf0);
+            vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+            vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+            float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+            return 2.2 * n_xyz;
+        }
+//////////////noise
+        void main(){
+          vec4 modelPosition = modelMatrix * vec4(position, 1.0);
+          float elevation=sin((modelPosition.x+modelPosition.z+time)*frequency.x)*amplitude;
+          elevation-=abs(cnoise(vec3(modelPosition.xz,time))*30.0);
+          modelPosition.y+=elevation;
+          vex_elevation=elevation/35.0;
+          modelPosition=projectionMatrix*viewMatrix*modelPosition;
+          gl_Position=modelPosition;
+
+        }
+        `,
+        fragmentShader:`
+        precision mediump float;
+        varying vec2 vex_uv;
+        uniform vec3 depthColor;
+        uniform vec3 surfaceColor;
+        varying float vex_elevation;
+        void main(){
+          vec3 color=mix(depthColor,surfaceColor,vex_elevation);
+          gl_FragColor=vec4(color,0.8);
+          
+        }
+        `,
+        transparent:true,
+
+      })
+      let mesh=new THREE.Mesh(g_geometry,water_shader);
+      g_scene.add(mesh); //点对象添加到场景中  
+      //水池几何
+      let base_geometry=new THREE.PlaneGeometry(300, 300, row, col);
+      let wall_geometry= new THREE.BoxGeometry(300,100,10);
+      //水池材质
+      let pool_material=new THREE.MeshToonMaterial({
+        color:0xb3b2a1,
+      })
+      let base_mesh=new THREE.Mesh(base_geometry,pool_material);
+      let wall_mesh_left=new THREE.Mesh(wall_geometry,pool_material);
+      let wall_mesh_right= new THREE.Mesh(wall_geometry,pool_material);
+      let wall_mesh_front=new THREE.Mesh(wall_geometry,pool_material);
+      let wall_mesh_rear= new THREE.Mesh(wall_geometry,pool_material);
+      wall_mesh_left.translateZ(150);
+      wall_mesh_right.translateZ(-150);
+      wall_mesh_front.translateX(-150);
+      wall_mesh_front.rotateY(90*toRad);
+      wall_mesh_rear.translateX(150);
+      wall_mesh_rear.rotateY(-90*toRad);
+      base_mesh.rotateX(-90*toRad);
+      base_mesh.translateZ(-50);
+      let swimming_pool=new THREE.Group();
+      swimming_pool.add(base_mesh,wall_mesh_left,wall_mesh_right,wall_mesh_front,wall_mesh_rear);
+      g_scene.add(swimming_pool);
+      console.log(g_geometry);
+      //漂浮物
+      float_geometry=new THREE.SphereBufferGeometry(8,8,5);
+      let float_material=new THREE.MeshToonMaterial({
+        color:0xe0d84c,
+      })
+      float_mesh=new THREE.Mesh(float_geometry,float_material);
+      g_scene.add(float_mesh);
+    }
+
+    function setFloat(){//漂浮物浮动
+      
+      let offset=Math.sin((time)*frequency)*amplitude;
+      //console.log(offset);
+      float_mesh.position.y=offset;
+    }
+
+  </script>
+</body>
+
+</html>
